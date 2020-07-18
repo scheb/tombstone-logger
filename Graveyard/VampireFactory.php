@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Scheb\Tombstone\Model;
+namespace Scheb\Tombstone\Logger\Graveyard;
 
-use Scheb\Tombstone\Tracing\PathNormalizer;
+use Scheb\Tombstone\Core\Model\StackTraceFrame;
+use Scheb\Tombstone\Core\Model\Tombstone;
+use Scheb\Tombstone\Core\Model\Vampire;
+use Scheb\Tombstone\Logger\Tracing\PathNormalizer;
 
 class VampireFactory
 {
@@ -37,7 +40,7 @@ class VampireFactory
     {
         // This is the call to the tombstone
         $tombstoneCall = $trace[0];
-        $file = $this->makePathRelativeIfPossible($tombstoneCall['file']);
+        $file = $this->normalizeAndRelativePath($tombstoneCall['file']);
         $line = $tombstoneCall['line'];
 
         // This is the method containing the tombstone
@@ -73,7 +76,7 @@ class VampireFactory
         $stackTrace = [];
         foreach ($trace as $frame) {
             $stackTrace[] = new StackTraceFrame(
-                $this->makePathRelativeIfPossible($frame['file']),
+                $this->normalizeAndRelativePath($frame['file']),
                 $frame['line'],
                 self::getMethodFromFrame($frame)
             );
@@ -82,8 +85,10 @@ class VampireFactory
         return $stackTrace;
     }
 
-    private function makePathRelativeIfPossible(string $path): string
+    private function normalizeAndRelativePath(string $path): string
     {
+        $path = PathNormalizer::normalizeDirectorySeparator($path);
+
         if (null === $this->rootDir) {
             return $path;
         }
